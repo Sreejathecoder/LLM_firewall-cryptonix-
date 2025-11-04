@@ -2,6 +2,7 @@
 # Install: pip install fastapi uvicorn sentence-transformers transformers faiss-cpu ftfy spacy langdetect lightgbm pyyaml torch
 
 import re
+import joblib
 import unicodedata
 import numpy as np
 from typing import List, Dict, Any, Optional
@@ -385,9 +386,21 @@ class EntityDetector:
 
 class ThreatFusion:
     def __init__(self):
-        self.model = None
-        # In production, load trained LightGBM model
-        # self.model = lgb.Booster(model_file='threat_model.txt')
+        """Initialize ThreatFusion with optional pre-trained model"""
+        try:
+            # Dynamically locate model file in the same directory as this script
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(base_dir, "firewall_xgb_model.pkl")
+
+            if os.path.exists(model_path):
+                self.model = joblib.load(model_path)
+                print(f"[ThreatFusion] Loaded trained model from: {model_path}")
+            else:
+                self.model = None
+                print("[ThreatFusion] No model found, using heuristic fallback.")
+        except Exception as e:
+            print(f"[ThreatFusion] Model load failed: {e}")
+            self.model = None
     
     def calculate_entropy(self, text: str) -> float:
         """Calculate Shannon entropy"""
